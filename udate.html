@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <form id="userForm">
+        <label for="username">Name</label>
+        <input type="text" id="username" name="username">
+        <label for="email">EmailId</label>
+        <input type="text" id="email" name="email">
+        <label for="phone">Phone Number</label>
+        <input type="text" id="phone" name="phone">
+        <button type="submit">Submit</button>
+    </form>
+    
+    <ul id="userList"></ul>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.23.0/axios.min.js"></script>
+    <script>
+        const userForm = document.getElementById('userForm');
+        const userList = document.getElementById('userList');
+        let editingUserEmail = null;
+
+        userForm.addEventListener('submit', saveToLocalStorage);
+
+        function saveToLocalStorage(event) {
+            event.preventDefault();
+            const name = event.target.username.value;
+            const email = event.target.email.value;
+            const phone = event.target.phone.value;
+
+            if (editingUserEmail) {
+                editUserDetails(editingUserEmail, name, phone);
+            } else {
+                const obj = {
+                    name,
+                    email,
+                    phone
+                };
+                axios.post("https://crudcrud.com/api/5113977a47c541d794310986c18d6f13/AppointmentData", obj)
+                .then((response) => {
+                    console.log(response);
+                    showNewUserOnScreen(obj);
+                    userForm.reset();
+                })
+                .catch((err) => {
+                    console.log(err);
+                });
+            }
+        }
+
+        function showNewUserOnScreen(user) {
+            const listItem = document.createElement('li');
+            listItem.innerHTML = `
+                <span>Name: ${user.name}</span>
+                <span>Email: ${user.email}</span>
+                <span>Phone: ${user.phone}</span>
+                <button onclick="editUser('${user.email}')">Edit</button>
+                <button onclick="deleteUser('${user.email}')">Delete</button>
+            `;
+            userList.appendChild(listItem);
+        }
+
+        function editUser(email) {
+            axios.get(`https://crudcrud.com/api/5113977a47c541d794310986c18d6f13/AppointmentData/${email}`)
+            .then((response) => {
+                const user = response.data;
+                editingUserEmail = user.email;
+                userForm.username.value = user.name;
+                userForm.email.value = user.email;
+                userForm.phone.value = user.phone;
+            })
+            .catch((err) => {
+                console.log(err);
+            });
+        }
+
+        function editUserDetails(email, newName, newPhone) {
+            axios.put(`https://crudcrud.com/api/5113977a47c541d794310986c18d6f13/AppointmentData/${email}`, {
+                name: newName,
+                phone: newPhone
+            })
+            .then((response) => {
+                console.log(response);
+                updateUserOnScreen(email, newName, newPhone);
+                userForm.reset();
+                editingUserEmail = null;
+            })
+            .catch((err) => {
+                console.log(err);
+            });
+        }
+
+        function updateUserOnScreen(email, newName, newPhone) {
+            const listItemToUpdate = Array.from(userList.children).find(item => item.querySelector('span:nth-child(2)').textContent.includes(email));
+            if (listItemToUpdate) {
+                const spans = listItemToUpdate.querySelectorAll('span');
+                spans[0].textContent = `Name: ${newName}`;
+                spans[2].textContent = `Phone: ${newPhone}`;
+            }
+        }
+
+       
+
+        function removeUserFromScreen(email) {
+            const listItemToRemove = Array.from(userList.children).find(item => item.querySelector('span:nth-child(2)').textContent.includes(email));
+            if (listItemToRemove) {
+                userList.removeChild(listItemToRemove);
+            }
+        }
+
+        axios.get("https://crudcrud.com/api/5113977a47c541d794310986c18d6f13/AppointmentData")
+        .then((response) => {
+            const users = response.data;
+            users.forEach(user => showNewUserOnScreen(user));
+        })
+        .catch((err) => {
+            console.log(err);
+        });
+    </script>
+</body>
+</html>
